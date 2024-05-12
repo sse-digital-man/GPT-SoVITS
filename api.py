@@ -135,6 +135,7 @@ RESP: 无
 import argparse
 import os,re
 import sys
+sys.path.append('./GPT_SoVITS')
 import signal
 import LangSegment
 from time import time as ttime
@@ -549,7 +550,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
         t2 = ttime()
         with torch.no_grad():
             # pred_semantic = t2s_model.model.infer(
-            pred_semantic, idx = t2s_model.model.infer_panel(
+            pred_semantic, idx = t2s_model.model.infer_panel_0307(
                 all_phoneme_ids,
                 all_phoneme_len,
                 prompt,
@@ -559,7 +560,15 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
                 early_stop_num=hz * max_sec)
         t3 = ttime()
         # print(pred_semantic.shape,idx)
-        pred_semantic = pred_semantic[:, -idx:].unsqueeze(0)  # .unsqueeze(0)#mq要多unsqueeze一次
+        # pred_semantic = pred_semantic[:, -idx:].unsqueeze(0)  # .unsqueeze(0)#mq要多unsqueeze一次
+        if isinstance(pred_semantic, list) and isinstance(pred_semantic, list):
+            pred_semantic = pred_semantic[0]
+            idx=idx[0]
+            pred_semantic = pred_semantic[-idx:]
+            pred_semantic = pred_semantic.unsqueeze(0).unsqueeze(0)
+        else:
+            pred_semantic = pred_semantic[:,-idx:]
+            pred_semantic = pred_semantic.unsqueeze(0)  # .unsqueeze(0)#mq要多unsqueeze一次
         refer = get_spepc(hps, ref_wav_path)  # .to(device)
         if (is_half == True):
             refer = refer.half().to(device)
@@ -631,7 +640,6 @@ def handle_change(path, text, language):
 
 
 def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc):
-def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc):
     if (
             refer_wav_path == "" or refer_wav_path is None
             or prompt_text == "" or prompt_text is None
@@ -685,9 +693,9 @@ parser = argparse.ArgumentParser(description="GPT-SoVITS api")
 
 parser.add_argument("-s", "--sovits_path", type=str, default=g_config.sovits_path, help="SoVITS模型路径")
 parser.add_argument("-g", "--gpt_path", type=str, default=g_config.gpt_path, help="GPT模型路径")
-parser.add_argument("-dr", "--default_refer_path", type=str, default="", help="默认参考音频路径")
-parser.add_argument("-dt", "--default_refer_text", type=str, default="", help="默认参考音频文本")
-parser.add_argument("-dl", "--default_refer_language", type=str, default="", help="默认参考音频语种")
+parser.add_argument("-dr", "--default_refer_path", type=str, default=g_config.default_radio, help="默认参考音频路径")
+parser.add_argument("-dt", "--default_refer_text", type=str, default=g_config.default_radio_txt, help="默认参考音频文本")
+parser.add_argument("-dl", "--default_refer_language", type=str, default=g_config.default_language, help="默认参考音频语种")
 parser.add_argument("-d", "--device", type=str, default=g_config.infer_device, help="cuda / cpu")
 parser.add_argument("-a", "--bind_addr", type=str, default="0.0.0.0", help="default: 0.0.0.0")
 parser.add_argument("-p", "--port", type=int, default=g_config.api_port, help="default: 9880")
@@ -845,9 +853,7 @@ async def tts_endpoint(
         text: str = None,
         text_language: str = None,
         cut_punc: str = None,
-        cut_punc: str = None,
 ):
-    return handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc)
     return handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc)
 
 
