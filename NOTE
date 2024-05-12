@@ -5,3 +5,7 @@
 3. 修改config.py文件和api.py文件指定模型和参考音频路径、参考音频文字、参考语言
 4. 需要新建default文件夹放入音频
 5. 运行api.py文件即可
+
+使用subprocess还可能会缺失：
+1. nvrtc-builtins64_118.dll需要将其放入对应的conda环境中的anaconda3\envs\your_env\Lib\site-packages\torch\lib中
+2.本机必须装有ffmpeg
