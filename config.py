@@ -3,12 +3,17 @@ import sys,os
 import torch
 
 # 推理用的指定模型
-sovits_path = ""
-gpt_path = ""
+sovits_path = "SoVITS_weights/babala_e8_s152.pth"
+gpt_path = "GPT_weights/babala-e15.ckpt"
 is_half_str = os.environ.get("is_half", "True")
 is_half = True if is_half_str.lower() == 'true' else False
 is_share_str = os.environ.get("is_share","False")
 is_share= True if is_share_str.lower() == 'true' else False
+
+# 默认参考音频路径和文本
+default_radio = "default/babala-欸，是没精神了吗？尝一尝我做的辣味饮料吧，很提神的喔！.mp3"
+default_radio_txt = "欸，是没精神了吗？尝一尝我做的辣味饮料吧，很提神的喔！"
+default_language = "中文"
 
 cnhubert_path = "GPT_SoVITS/pretrained_models/chinese-hubert-base"
 bert_path = "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
@@ -49,6 +54,10 @@ class Config:
         self.gpt_path = gpt_path
         self.is_half = is_half
 
+        self.default_radio = default_radio
+        self.default_radio_txt = default_radio_txt
+        self.default_language = default_language
+
         self.cnhubert_path = cnhubert_path
         self.bert_path = bert_path
         self.pretrained_sovits_path = pretrained_sovits_path
@@ -64,3 +73,4 @@ class Config:
         self.webui_port_subfix = webui_port_subfix
 
         self.api_port = api_port
+        print("当前设备为:", infer_device)
