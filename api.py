@@ -21,6 +21,9 @@
 `-sm` - `流式返回模式, 默认不启用, "close","c", "normal","n", "keepalive","k"`
 ·-mt` - `返回的音频编码格式, 流式默认ogg, 非流式默认wav, "wav", "ogg", "aac"`
 ·-cp` - `文本切分符号设定, 默认为空, 以",.，。"字符串的方式传入`
+`-sm` - `流式返回模式, 默认不启用, "close","c", "normal","n", "keepalive","k"`
+·-mt` - `返回的音频编码格式, 流式默认ogg, 非流式默认wav, "wav", "ogg", "aac"`
+·-cp` - `文本切分符号设定, 默认为空, 以",.，。"字符串的方式传入`
 
 `-hb` - `cnhubert路径`
 `-b` - `bert路径`
@@ -39,6 +42,18 @@ POST:
 {
     "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
     "text_language": "zh"
+}
+```
+
+使用执行参数指定的参考音频并设定分割符号:
+GET:
+    `http://127.0.0.1:9880?text=先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。&text_language=zh&cut_punc=，。`
+POST:
+```json
+{
+    "text": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。",
+    "text_language": "zh",
+    "cut_punc": "，。",
 }
 ```
 
@@ -120,11 +135,6 @@ RESP: 无
 import argparse
 import os,re
 import sys
-
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
-
 import signal
 import LangSegment
 from time import time as ttime
@@ -145,6 +155,8 @@ from text.cleaner import clean_text
 from module.mel_processing import spectrogram_torch
 from my_utils import load_audio
 import config as global_config
+import logging
+import subprocess
 import logging
 import subprocess
 
@@ -171,6 +183,7 @@ def is_full(*items):  # 任意一项为空返回False
         if item is None or item == "":
             return False
     return True
+
 
 
 def change_sovits_weights(sovits_path):
@@ -210,6 +223,7 @@ def change_gpt_weights(gpt_path):
     t2s_model.eval()
     total = sum([param.nelement() for param in t2s_model.parameters()])
     logger.info("Number of parameter: %.2fM" % (total / 1e6))
+    logger.info("Number of parameter: %.2fM" % (total / 1e6))
 
 
 def get_bert_feature(text, word2ph):
@@ -229,6 +243,81 @@ def get_bert_feature(text, word2ph):
     return phone_level_feature.T
 
 
+def clean_text_inf(text, language):
+    phones, word2ph, norm_text = clean_text(text, language)
+    phones = cleaned_text_to_sequence(phones)
+    return phones, word2ph, norm_text
+
+
+def get_bert_inf(phones, word2ph, norm_text, language):
+    language=language.replace("all_","")
+    if language == "zh":
+        bert = get_bert_feature(norm_text, word2ph).to(device)#.to(dtype)
+    else:
+        bert = torch.zeros(
+            (1024, len(phones)),
+            dtype=torch.float16 if is_half == True else torch.float32,
+        ).to(device)
+
+    return bert
+
+
+def get_phones_and_bert(text,language):
+    if language in {"en","all_zh","all_ja"}:
+        language = language.replace("all_","")
+        if language == "en":
+            LangSegment.setfilters(["en"])
+            formattext = " ".join(tmp["text"] for tmp in LangSegment.getTexts(text))
+        else:
+            # 因无法区别中日文汉字,以用户输入为准
+            formattext = text
+        while "  " in formattext:
+            formattext = formattext.replace("  ", " ")
+        phones, word2ph, norm_text = clean_text_inf(formattext, language)
+        if language == "zh":
+            bert = get_bert_feature(norm_text, word2ph).to(device)
+        else:
+            bert = torch.zeros(
+                (1024, len(phones)),
+                dtype=torch.float16 if is_half == True else torch.float32,
+            ).to(device)
+    elif language in {"zh", "ja","auto"}:
+        textlist=[]
+        langlist=[]
+        LangSegment.setfilters(["zh","ja","en","ko"])
+        if language == "auto":
+            for tmp in LangSegment.getTexts(text):
+                if tmp["lang"] == "ko":
+                    langlist.append("zh")
+                    textlist.append(tmp["text"])
+                else:
+                    langlist.append(tmp["lang"])
+                    textlist.append(tmp["text"])
+        else:
+            for tmp in LangSegment.getTexts(text):
+                if tmp["lang"] == "en":
+                    langlist.append(tmp["lang"])
+                else:
+                    # 因无法区别中日文汉字,以用户输入为准
+                    langlist.append(language)
+                textlist.append(tmp["text"])
+        # logger.info(textlist)
+        # logger.info(langlist)
+        phones_list = []
+        bert_list = []
+        norm_text_list = []
+        for i in range(len(textlist)):
+            lang = langlist[i]
+            phones, word2ph, norm_text = clean_text_inf(textlist[i], lang)
+            bert = get_bert_inf(phones, word2ph, norm_text, lang)
+            phones_list.append(phones)
+            norm_text_list.append(norm_text)
+            bert_list.append(bert)
+        bert = torch.cat(bert_list, dim=1)
+        phones = sum(phones_list, [])
+        norm_text = ''.join(norm_text_list)
+
+    return phones,bert.to(torch.float16 if is_half == True else torch.float32),norm_text
 def clean_text_inf(text, language):
     phones, word2ph, norm_text = clean_text(text, language)
     phones = cleaned_text_to_sequence(phones)
@@ -431,10 +520,20 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
     prompt_language = dict_language[prompt_language.lower()]
     text_language = dict_language[text_language.lower()]
     phones1, bert1, norm_text1 = get_phones_and_bert(prompt_text, prompt_language)
+    prompt_language = dict_language[prompt_language.lower()]
+    text_language = dict_language[text_language.lower()]
+    phones1, bert1, norm_text1 = get_phones_and_bert(prompt_text, prompt_language)
     texts = text.split("\n")
+    audio_bytes = BytesIO()
     audio_bytes = BytesIO()
 
     for text in texts:
+        # 简单防止纯符号引发参考音频泄露
+        if only_punc(text):
+            continue
+
+        audio_opt = []
+        phones2, bert2, norm_text2 = get_phones_and_bert(text, text_language)
         # 简单防止纯符号引发参考音频泄露
         if only_punc(text):
             continue
@@ -485,6 +584,17 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text, text_language)
             audio_bytes = pack_wav(audio_bytes,hps.data.sampling_rate)
         yield audio_bytes.getvalue()
 
+        audio_bytes = pack_audio(audio_bytes,(np.concatenate(audio_opt, 0) * 32768).astype(np.int16),hps.data.sampling_rate)
+    # logger.info("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t3 - t2, t4 - t3))
+        if stream_mode == "normal":
+            audio_bytes, audio_chunk = read_clean_buffer(audio_bytes)
+            yield audio_chunk
+    
+    if not stream_mode == "normal": 
+        if media_type == "wav":
+            audio_bytes = pack_wav(audio_bytes,hps.data.sampling_rate)
+        yield audio_bytes.getvalue()
+
 
 
 def handle_control(command):
@@ -511,10 +621,16 @@ def handle_change(path, text, language):
     logger.info(f"当前默认参考音频语种: {default_refer.language}")
     logger.info(f"is_ready: {default_refer.is_ready()}")
 
+    logger.info(f"当前默认参考音频路径: {default_refer.path}")
+    logger.info(f"当前默认参考音频文本: {default_refer.text}")
+    logger.info(f"当前默认参考音频语种: {default_refer.language}")
+    logger.info(f"is_ready: {default_refer.is_ready()}")
+
 
     return JSONResponse({"code": 0, "message": "Success"}, status_code=200)
 
 
+def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc):
 def handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc):
     if (
             refer_wav_path == "" or refer_wav_path is None
@@ -717,6 +833,7 @@ async def tts_endpoint(request: Request):
         json_post_raw.get("text"),
         json_post_raw.get("text_language"),
         json_post_raw.get("cut_punc"),
+        json_post_raw.get("cut_punc"),
     )
 
 
@@ -728,7 +845,9 @@ async def tts_endpoint(
         text: str = None,
         text_language: str = None,
         cut_punc: str = None,
+        cut_punc: str = None,
 ):
+    return handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc)
     return handle(refer_wav_path, prompt_text, prompt_language, text, text_language, cut_punc)
 
 
