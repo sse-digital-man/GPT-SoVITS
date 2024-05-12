@@ -135,7 +135,7 @@ RESP: 无
 import argparse
 import os,re
 import sys
-sys.path.append('./GPT_SoVITS')
+sys.path.append('GPT_SoVITS')
 import signal
 import LangSegment
 from time import time as ttime
