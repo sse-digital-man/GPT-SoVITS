@@ -9,3 +9,5 @@
 使用subprocess还可能会缺失：
 1. nvrtc-builtins64_118.dll需要将其放入对应的conda环境中的anaconda3\envs\your_env\Lib\site-packages\torch\lib中
 2.本机必须装有ffmpeg
+
+END
