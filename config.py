@@ -11,7 +11,7 @@ is_share_str = os.environ.get("is_share","False")
 is_share= True if is_share_str.lower() == 'true' else False
 
 # 默认参考音频路径和文本
-default_radio = "default/babala-欸，是没精神了吗？尝一尝我做的辣味饮料吧，很提神的喔！.mp3"
+default_radio = "default/babala.mp3"
 default_radio_txt = "欸，是没精神了吗？尝一尝我做的辣味饮料吧，很提神的喔！"
 default_language = "中文"
 
