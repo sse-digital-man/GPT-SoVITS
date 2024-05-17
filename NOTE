@@ -1,4 +1,7 @@
 关于环境配置参考：[请问如何将本项目作为git submodule供其他项目使用？ · Issue #1082 · RVC-Boss/GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS/issues/1082)
+`conda install ffmpeg cmake`
+`conda install pytorch==2.1.1 torchvision==0.16.1 torchaudio==2.1.1 pytorch-cuda=11.8 -c pytorch -c nvidia`
+`pip install -r requirements.txt`
 
 1. 需要新建SoVITS_weights和GPT_weights两个文件夹并将对应的模型放入
 2. 需要在GPT_SoVITS/pretrained_models中放入对应的模型
