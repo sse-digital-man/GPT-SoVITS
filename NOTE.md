@@ -20,3 +20,8 @@
 # 运行
 WebUI: `python webui.py`
 WebAPI:`python api.py`
+
+# Docker
+pull image: `docker pull kingkia/gsv-api`
+run: `docker run -it --gpus=all --env=is_half=False --volume=D:\GSV\GPT-SoVITS\output:/workspace/output --volume=D:\GSV\GPT-SoVITS\logs:/workspace/logs --volume=D:\GSV\GPT-SoVITS\SoVITS_weights:/workspace/SoVITS_weights --volume=D:\GSV\GPT-SoVITS\GPT_weights:/workspace/GPT_weights --volume=D:\GSV\GPT-SoVITS\reference:/workspace/reference --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" --name gpt-sovits-api -d kingkia/gpt-sovits-api`
+> 根据需要修改volume路径，必须写的包括SoVITS_weights、GPT_weights、reference
