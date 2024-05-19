@@ -9,7 +9,7 @@
 1. 需要新建SoVITS_weights和GPT_weights两个文件夹并将对应的模型放入
 2. 需要在GPT_SoVITS/pretrained_models中放入对应的模型
 3. 修改config.py文件和api.py文件指定模型和参考音频路径、参考音频文字、参考语言
-4. 需要新建default文件夹放入音频
+4. 需要新建reference文件夹放入音频
 5. 运行api.py文件即可
 
 # 注意事项
