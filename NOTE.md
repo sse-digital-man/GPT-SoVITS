@@ -23,6 +23,7 @@ WebAPI:`python api.py`
 
 # Docker
 pull image: `docker pull kingkia/gpt-sovits-api`
-run: `docker run -it --gpus=all --env=is_half=False --volume=D:\GSV\GPT-SoVITS\output:/workspace/output --volume=D:\GSV\GPT-SoVITS\logs:/workspace/logs --volume=D:\GSV\GPT-SoVITS\SoVITS_weights:/workspace/SoVITS_weights --volume=D:\GSV\GPT-SoVITS\GPT_weights:/workspace/GPT_weights --volume=D:\GSV\GPT-SoVITS\reference:/workspace/reference --workdir=/workspace -p 9880:9880 -p 9871:9871 -p 9872:9872 -p 9873:9873 -p 9874:9874 --shm-size="16G" --name gpt-sovits-api -d kingkia/gpt-sovits-api`
-> 根据需要修改volume路径，必须写的包括SoVITS_weights、GPT_weights、reference
+run: `docker run -it -d --gpus=all --shm-size="16G" --env=is_half=False -v=D:\GSV\GPT-SoVITS\output:/workspace/output -v=D:\GSV\GPT-SoVITS\logs:/workspace/logs -v=D:\GSV\GPT-SoVITS\SoVITS_weights:/workspace/SoVITS_weights -v=D:\GSV\GPT-SoVITS\GPT_weights:/workspace/GPT_weights -v=D:\GSV\GPT-SoVITS\reference:/workspace/reference -v=D:\GSV\GPT-SoVITS\config.py:/workspace/config.py -p 9880:9880 --name gpt-sovits-api kingkia/gpt-sovits-api`
+> 根据需要修改volume路径，必须写的包括SoVITS_weights、GPT_weights、reference以及config.py
+> 需要修改config.py文件中的一些参数，如模型路径、参考音频路径、参考音频文字、参考语言等
 > 也需要完成【前置工作1-4】

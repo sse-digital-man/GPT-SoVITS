@@ -1,8 +1,8 @@
 # Base CUDA image
 FROM cnstark/pytorch:2.0.1-py3.9.17-cuda11.8.0-ubuntu20.04
 
-LABEL maintainer="breakstring@hotmail.com"
-LABEL version="dev-20240209"
+LABEL maintainer="1581690775@qq.com"
+LABEL version="dev-20240525"
 LABEL description="Docker image for GPT-SoVITS"
 
 
